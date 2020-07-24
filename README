@@ -1,0 +1,13 @@
+# Step-gdml
+
+A project to convert STEP files to GDML files in a clean and fast fashion.
+Requires OpenCASCADE (tested with 7.4.0) and Qt5 (tested with 5.6).
+
+To build:
+
+Run:
+> qmake step-gdml.pro
+> make
+
+Errors may occur if $CASROOT can not be found. Either set it to
+the root location of OpenCASCADE or edit step-gdml.pro.
