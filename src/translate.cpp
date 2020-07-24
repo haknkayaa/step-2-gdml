@@ -273,11 +273,12 @@ bool Translator::importSTEP(QString file,
     reader.SetNameMode(true);
     reader.SetMatMode(true);
 
-    qDebug("Reading begun.");
+    qDebug("Reading begin.");
 
     IFSelect_ReturnStatus status = reader.ReadFile((Standard_CString)file.toUtf8().constData());
 
-    qDebug("Reading complete.");
+    qDebug("OK! Reading complete.");
+
     switch (status) {
         case IFSelect_RetVoid:
             qWarning("Read status was VOID.");
@@ -296,9 +297,9 @@ bool Translator::importSTEP(QString file,
     }
 
     Handle(TDocStd_Document) doc = new TDocStd_Document("XmlXCAF");
-    qDebug("Transfer begun.");
+    qDebug("Transfer begin.");
     bool ok = reader.Transfer(doc);
-    qDebug("Transfer complete.");
+    qDebug("OK! Transfer complete.");
     if (!ok) {
         qWarning("Transfer wasn't ok. Aborting.");
         return false;

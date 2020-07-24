@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CLionExternalBuildManager">
+    <target id="cbbbe58f-2623-4739-a3fc-39e987f63d93" name="make" projectName="step-2-gdml">
+      <configuration id="470bb743-16e2-463d-b2d8-0f422c28d7b2" name="make">
+        <build type="TOOL">
+          <tool actionId="Tool_External Tools_make" />
+        </build>
+        <clean type="TOOL">
+          <tool actionId="Tool_External Tools_make clean" />
+        </clean>
+      </configuration>
+    </target>
+  </component>
+</project>

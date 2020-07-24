@@ -287,6 +287,7 @@ QList<QString> ensureUniqueness(const QList<QString>& input)
 
 void MainWindow::importSTEP(QString path)
 {
+
     qDebug("Importing file %s", path.toUtf8().data());
 
     context->RemoveAll(true);
@@ -353,11 +354,16 @@ void MainWindow::exportGDML(QString path)
 void MainWindow::raiseSTEP()
 {
     QString filters = "All Files (*.*);;Step Files (*.stp *.step)";
-    QString name = QFileDialog::getOpenFileName(this, "Import STEP file",
+    QString name = QFileDialog::getOpenFileName(this, "Import STEP file (.stp, .step)",
                    QDir::currentPath(), filters);
     if (!name.isEmpty()) {
+        // Qstring print
+        qDebug("STEP PATH= %s", name.toStdString().c_str());
+        qDebug("STEP PATH= %s", name.toUtf8().data());
         importSTEP(name);
+
     }
+
 }
 
 void MainWindow::raiseGDML()
