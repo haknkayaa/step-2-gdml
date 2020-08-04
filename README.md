@@ -9,7 +9,7 @@ A project to convert STEP files to GDML files in a clean and fast fashion.
 Errors may occur if $CASROOT can not be found. Either set it to
 the root location of OpenCASCADE or edit step-gdml.pro.
 
-# Requires:
+# Requirements:
 - Qt4 or Qt5 (tested with 4.8.6)
 - OpenCASCADE (tested with 7.4.0)
 
