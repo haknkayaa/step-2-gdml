@@ -239,18 +239,24 @@ void MainWindow::createMenus()
     QAction* load = mkAction(this, "Load STEP file...", "Ctrl+O",
                              SLOT(raiseSTEP()));
     QAction* expo = mkAction(this, "Export GDML file", "Ctrl+E", SLOT(raiseGDML()));
-    QAction* help = mkAction(this, "Help", "", SLOT(raiseHelp()));
+    QAction* setView = mkAction(this, "Settings View", "", SLOT(raiseHelp()));
 
+    // File Menu Bar
     QMenu* fileMenu = new QMenu("File", this);
+
     fileMenu->addAction(load);
     fileMenu->addAction(expo);
     fileMenu->addSeparator();
     fileMenu->addAction(quit);
+
     this->menuBar()->addMenu(fileMenu);
 
-    QMenu* helpMenu = new QMenu("Help", this);
-    helpMenu->addAction(help);
-    this->menuBar()->addMenu(helpMenu);
+    // Help Menu Bar
+    QMenu* settingsMenu = new QMenu("Settings", this);
+
+    settingsMenu->addAction(setView);
+
+    this->menuBar()->addMenu(settingsMenu);
 }
 
 QList<QString> ensureUniqueness(const QList<QString>& input)

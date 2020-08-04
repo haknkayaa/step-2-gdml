@@ -306,12 +306,10 @@ bool Translator::importSTEP(QString file,
     }
 
     TDF_Label mainLabel = doc->Main();
-    Handle(XCAFDoc_ShapeTool) shapeTool = XCAFDoc_DocumentTool::ShapeTool(
-            mainLabel);
-    Handle(XCAFDoc_ColorTool) colorTool = XCAFDoc_DocumentTool::ColorTool(
-            mainLabel);
-    Handle(XCAFDoc_MaterialTool) materialTool = XCAFDoc_DocumentTool::MaterialTool(
-            mainLabel);
+
+    Handle(XCAFDoc_ShapeTool) shapeTool = XCAFDoc_DocumentTool::ShapeTool(mainLabel);
+    Handle(XCAFDoc_ColorTool) colorTool = XCAFDoc_DocumentTool::ColorTool(mainLabel);
+    Handle(XCAFDoc_MaterialTool) materialTool = XCAFDoc_DocumentTool::MaterialTool(mainLabel);
 
     TDF_LabelSequence labels;
     shapeTool->GetFreeShapes(labels);

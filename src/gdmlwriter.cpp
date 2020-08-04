@@ -33,7 +33,8 @@ static QByteArray convName(const QString& name) {
     for (QChar c : name) {
         if (c <= 127 && c != QChar('"') && c != QChar('[') && c != QChar(']')) {
             b.push_back(c.toLatin1());
-        } else {
+        }
+        else {
             b.push_back('?');
         }
     }

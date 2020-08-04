@@ -63,15 +63,20 @@ int main(int argc, char** argv)
         MainWindow w(ifile);
         w.show();
         return app.exec();
-    } else if (args.length() == 3) {
+    }
+
+    else if (args.length() == 3) {
+        // ./step-gdml "file_name.step" "output_name.gdml"
         QString ifile = args[1];
         QString ofile = args[2];
+
         Handle(TopTools_HSequenceOfShape) shapes = new TopTools_HSequenceOfShape();
         QList<QPair<QString, QColor> > li;
         if (!Translator::importSTEP(ifile, shapes, li)) {
             printf("Import failed. :-(\n");
             return -1;
         }
+
         QVector<SolidMetadata> metadata(shapes->Length());
         for (int i = 0; i < metadata.size(); i++) {
             metadata[i].color = Quantity_Color();
@@ -87,7 +92,9 @@ int main(int argc, char** argv)
             return -1;
         }
         return 0;
-    } else {
+    }
+
+    else {
         printf("Usage: step-gdml [INPUT_STEP_FILE] [OUTPUT_GDML_FILE]\n");
         return -1;
     }

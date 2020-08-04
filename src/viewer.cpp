@@ -30,8 +30,7 @@
 
 #include <Xw_Window.hxx>
 
-Viewer::Viewer(Handle(AIS_InteractiveContext) v, QWidget* parent) :
-    QWidget(parent)
+Viewer::Viewer(Handle(AIS_InteractiveContext) v, QWidget* parent) : QWidget(parent)
 {
     context = v;
     if (context->CurrentViewer().IsNull()) {
