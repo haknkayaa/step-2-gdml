@@ -8,7 +8,11 @@ org: https://github.com/frsfnrrg/step-gdml
 A project to convert STEP files to GDML files in a clean and fast fashion.
 Requires OpenCASCADE (tested with 7.4.0) and Qt4 (tested with 4.8.6).
 
-To build:
+# Require:
+- Qt4 or Qt5
+- OpenCASCADE
+
+# Installation:
 ```bash
 qmake step-gdml.pro
 make
