@@ -1,5 +1,5 @@
 [![GitHub license](https://img.shields.io/github/license/haknkayaa/step-2-gdml?style=for-the-badge)](https://github.com/haknkayaa/step-2-gdml/blob/master/LICENSE.md)
-
+[![Build](https://img.shields.io/badge/Build-passing-brightgreen)](https://github.com/haknkayaa/step-2-gdml)
 
 # STEP TO GDML CONVERTER
 
