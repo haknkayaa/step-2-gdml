@@ -18,7 +18,7 @@ isEmpty (CASROOT) {
 
 OCCLIB=$$CASROOT/lib/
 !exists($$OCCLIB) {
-    OCCLIB=$$CASROOT/lin64/gcc/lib
+    OCCLIB=$$CASROOT/build/lin64/gcc/lib
 }
 message (OCCLIB is $$OCCLIB)
 

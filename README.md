@@ -10,7 +10,8 @@ Errors may occur if $CASROOT can not be found. Either set it to
 the root location of OpenCASCADE or edit step-gdml.pro.
 
 # Requirements:
-- Qt4 or Qt5 (tested with 4.8.6)
+- Qmake  (tested with 2.01a)
+- Qt4 or Qt5 (tested with 4.8.7)
 - OpenCASCADE (tested with 7.4.0)
 
 # Installation:
