@@ -9,9 +9,10 @@ To build:
 > qmake step-gdml.pro
 > make
 
-Run:
+# Usage
+```
 > ./step-gdml
-
+```
 
 Errors may occur if $CASROOT can not be found. Either set it to
 the root location of OpenCASCADE or edit step-gdml.pro.
