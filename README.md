@@ -1,6 +1,4 @@
-[![GitHub issues](https://img.shields.io/github/issues/haknkayaa/step-2-gdml)](https://github.com/haknkayaa/step-2-gdml/issues)
-[![GitHub license](https://img.shields.io/github/license/haknkayaa/step-2-gdml)](https://github.com/haknkayaa/step-2-gdml)
-[(https://img.shields.io/badge/version-v0.1-green)]
+[![GitHub license](https://img.shields.io/github/license/haknkayaa/step-2-gdml?style=for-the-badge)](https://github.com/haknkayaa/step-2-gdml/blob/master/LICENSE.md)
 
 
 # Step-gdml
