@@ -24,5 +24,8 @@ make
 ./step-gdml
 ```
 
+# Supported Platform
+- Linux (tested with Ubuntu 18.04)
+
 
 
