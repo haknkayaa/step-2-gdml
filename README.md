@@ -16,11 +16,11 @@ the root location of OpenCASCADE or edit step-gdml.pro.
 
 # Installation:
 ```bash
-qmake step-gdml.pro
-make
+qmake ./step-gdml.pro
+make -j
 ```
 
-# Usage
+# Run
 ```bash
 ./step-gdml
 ```

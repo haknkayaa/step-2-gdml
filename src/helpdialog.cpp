@@ -498,7 +498,7 @@ HelpDialog::HelpDialog(QWidget* parent) :
     table->setMinimumSize(xw, yw);
     connect(table, SIGNAL(cellClicked(int, int)), SLOT(editCell(int, int)));
 
-    setWindowTitle("Step-Gdml Help");
+    setWindowTitle("Step-Gdml View Settings");
 
     QPushButton* resetButton = new QPushButton("Reset");
     resetButton->setStyleSheet("QPushButton{font:bold;color:orange;background:black}");

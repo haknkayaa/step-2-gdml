@@ -25,60 +25,79 @@
 #include <TDF_LabelSequence.hxx>
 #include <TDataStd_Name.hxx>
 
-//
-//
-//                      TRANSLATOR
-//
-//
 
-Translator::Translator(const Handle(AIS_InteractiveContext) theContext) :
-    context(theContext)
-{
+Translator::Translator(const Handle(AIS_InteractiveContext) theContext) : context(theContext) {
+
 }
 
-QList<AIS_InteractiveObject*> Translator::displayShapes(const Handle(
-            AIS_InteractiveContext)& theContext,
-        const Handle(TopTools_HSequenceOfShape) & shapes)
-{
-    QList<AIS_InteractiveObject*> objs;
-    if (shapes.IsNull() || shapes->IsEmpty()) {
+// start import process
+QList<AIS_InteractiveObject *>
+Translator::importSTEP(QString path, QList<QPair<QString, QColor> > &objNames) {
 
+    Handle(TopTools_HSequenceOfShape) shapes = new TopTools_HSequenceOfShape();
+
+    // process start and control
+    if (!importProcess(path, shapes, objNames)) {
+        qWarning("STEP Import failed\n");
+        return QList<AIS_InteractiveObject *>();
+    }
+
+    // display shapes
+    return displayShapes(context, shapes);
+}
+
+
+// display shape
+QList<AIS_InteractiveObject *>
+Translator::displayShapes(const Handle(AIS_InteractiveContext) &theContext,
+                          const Handle(TopTools_HSequenceOfShape) &shapes) {
+    QList<AIS_InteractiveObject *> objs;
+
+    // shapes control
+    if (shapes.IsNull() || shapes->IsEmpty()) {
         qWarning("Incoming list of shapes is empty");
         return objs;
     }
 
+    //
     for (int i = 1; i <= shapes->Length(); i++) {
-        AIS_Shape* e = new AIS_Shape(shapes->Value(i));
+        AIS_Shape *e = new AIS_Shape(shapes->Value(i));
         e->SetDisplayMode(AIS_Shaded);
 
-        Graphic3d_MaterialAspect mat;
-        mat.SetTransparency(0.0);
-        mat.SetShininess(0.003);
+        //Graphic3d_MaterialAspect mat;
 
+        //mat.SetTransparency(0);  // 0 opak, 1 transparan
+        //mat.SetShininess(0.5); // yüzey parlaklığı
+
+        // Işık ayalarının amına koyuyor burası
+/*
         //mat.SetAmbient(0.5);
-        mat.SetAmbientColor(Quantity_NOC_WHITE);
-        mat.SetReflectionModeOff(Graphic3d_TOR_AMBIENT);
+        //mat.SetAmbientColor(Quantity_NOC_RED);
+        //mat.ReflectionMode(Graphic3d_TOR_AMBIENT);
 
         //mat.SetDiffuse(0.65);
         mat.SetDiffuseColor(Quantity_NOC_WHITE);
-        mat.SetReflectionModeOff(Graphic3d_TOR_DIFFUSE);
+        mat.ReflectionMode(Graphic3d_TOR_DIFFUSE);
 
         //mat.SetSpecular(0.01);
-        mat.SetSpecularColor(Quantity_NOC_WHITE);
+        mat.SetSpecularColor(Quantity_NOC_RED);
         //mat.SetReflectionModeOn(Graphic3d_TOR_SPECULAR);
-	    mat.SetReflectionModeOff(Graphic3d_TOR_SPECULAR);
+	      mat.ReflectionMode(Graphic3d_TOR_SPECULAR);
 
         //mat.SetEmissive(0.0);
         mat.SetEmissiveColor(Quantity_NOC_WHITE);
         //mat.SetReflectionModeOn(Graphic3d_TOR_EMISSION);
-	    mat.SetReflectionModeOff(Graphic3d_TOR_EMISSION);
+	      mat.ReflectionMode(Graphic3d_TOR_EMISSION);
 
         mat.SetMaterialName("Magic Material");
         mat.SetMaterialType(Graphic3d_MATERIAL_ASPECT);
 
-        e->SetMaterial(mat);
+        mat.ReflectionMode(Graphic3d_TOR_DIFFUSE);
+*/
 
-        theContext->Display(e, false);
+        //e->SetMaterial(mat);
+
+        theContext->Display(e, true);
         objs.append(e);
     }
 
@@ -87,11 +106,10 @@ QList<AIS_InteractiveObject*> Translator::displayShapes(const Handle(
     return objs;
 }
 
-bool Translator::findAllShapes(const Handle(AIS_InteractiveContext)& ctxt,
-                               const Handle(TopTools_HSequenceOfShape) & shapes)
-{
+bool Translator::findAllShapes(const Handle(AIS_InteractiveContext) &ctxt,
+                               const Handle(TopTools_HSequenceOfShape) &shapes) {
     if (shapes.IsNull()) {
-        qWarning("Incoming shape list was null.");
+        qWarning("Incoming shape list was Diffusenull.");
         return false;
     }
 
@@ -111,10 +129,9 @@ bool Translator::findAllShapes(const Handle(AIS_InteractiveContext)& ctxt,
     return !shapes->IsEmpty();
 }
 
-QList<AIS_InteractiveObject*> Translator::getInteractiveObjects(const Handle(
-            AIS_InteractiveContext)& ctxt)
-{
-    QList<AIS_InteractiveObject*> qll;
+QList<AIS_InteractiveObject *>
+Translator::getInteractiveObjects(const Handle(AIS_InteractiveContext) &ctxt) {
+    QList<AIS_InteractiveObject *> qll;
     AIS_ListOfInteractive objs;
     ctxt->EraseAll(false);
     ctxt->ErasedObjects(objs);
@@ -131,20 +148,10 @@ QList<AIS_InteractiveObject*> Translator::getInteractiveObjects(const Handle(
     return qll;
 }
 
-QList<AIS_InteractiveObject*> Translator::importSTEP(QString path,
-        QList<QPair<QString, QColor> >& objNames)
-{
-    Handle(TopTools_HSequenceOfShape) shapes = new TopTools_HSequenceOfShape();
-    if (!importSTEP(path, shapes, objNames)) {
-        qWarning("STEP Import failed\n");
-        return QList<AIS_InteractiveObject*>();
-    }
-    return displayShapes(context, shapes);
-}
 
+// start export process
 bool Translator::exportGDML(QString path,
-                            const QVector<SolidMetadata>& metadata)
-{
+                            const QVector<SolidMetadata> &metadata) {
     Handle(TopTools_HSequenceOfShape) shapes = new TopTools_HSequenceOfShape();
     // add all dem shapes
 
@@ -152,32 +159,29 @@ bool Translator::exportGDML(QString path,
         return false;
     }
 
-    return exportGDML(path, shapes, metadata);
+    return exportProcess(path, shapes, metadata);
 }
 
 
-QString getName(const TDF_Label& label)
-{
+QString getName(const TDF_Label &label) {
     Handle(TDataStd_Name) name = new TDataStd_Name();
     bool found = label.FindAttribute(name->GetID(), name);
     if (!found) {
-        return QString("???");
+        return QString("Unknown");
     } else {
         char chars[name->Get().LengthOfCString()];
-        char* x = chars;
+        char *x = chars;
         name->Get().ToUTF8CString(x);
         return QString(x);
     }
 }
 
-uint qHash(const QColor& color)
-{
+uint qHash(const QColor &color) {
     return qHash(color.name());
 }
 
-QColor getColor(const TopoDS_Shape& shape,
-                const Handle(XCAFDoc_ColorTool)& tool)
-{
+QColor getColor(const TopoDS_Shape &shape,
+                const Handle(XCAFDoc_ColorTool) &tool) {
     bool success;
     Quantity_Color color;
     // From observation (no research yet)
@@ -201,8 +205,8 @@ QColor getColor(const TopoDS_Shape& shape,
     return QColor();
 }
 
-int countSubshapes(const TopoDS_Shape& s, TopAbs_ShapeEnum type)
-{
+int countSubshapes(const TopoDS_Shape &s,
+                   TopAbs_ShapeEnum type) {
     TopExp_Explorer exp(s, type);
     int i = 0;
     while (exp.More()) {
@@ -212,11 +216,10 @@ int countSubshapes(const TopoDS_Shape& s, TopAbs_ShapeEnum type)
     return i;
 }
 
-QPair<QString, QColor> handleShapeMetadata(const TopoDS_Shape& shape,
-        const Handle(XCAFDoc_ColorTool)& colorTool,
-        const Handle(XCAFDoc_ShapeTool)& shapeTool,
-        const Handle(XCAFDoc_MaterialTool)& materialTool)
-{
+QPair<QString, QColor> handleShapeMetadata(const TopoDS_Shape &shape,
+                                           const Handle(XCAFDoc_ColorTool) &colorTool,
+                                           const Handle(XCAFDoc_ShapeTool) &shapeTool,
+                                           const Handle(XCAFDoc_MaterialTool) &materialTool) {
     Q_UNUSED(materialTool);
 
     QColor result = getColor(shape, colorTool);
@@ -224,7 +227,7 @@ QPair<QString, QColor> handleShapeMetadata(const TopoDS_Shape& shape,
     if (!result.isValid()) {
         // If there is no applied color, grab the color from the object.
         QSet<QColor> cols;
-        for (TopExp_Explorer fcxp(shape, TopAbs_FACE); fcxp.More(); fcxp.Next())  {
+        for (TopExp_Explorer fcxp(shape, TopAbs_FACE); fcxp.More(); fcxp.Next()) {
             TopoDS_Shape face = fcxp.Current();
             QColor faceColor = getColor(face, colorTool);
             if (faceColor.isValid()) {
@@ -234,7 +237,7 @@ QPair<QString, QColor> handleShapeMetadata(const TopoDS_Shape& shape,
         if (cols.size()) {
             int r = 0, g = 0, b = 0;
             for (QSet<QColor>::const_iterator c = cols.begin(); c != cols.end(); c++) {
-                const QColor& t = *c;
+                const QColor &t = *c;
                 r += t.red(), g += t.green(), b += t.blue();
             }
 
@@ -259,100 +262,11 @@ QPair<QString, QColor> handleShapeMetadata(const TopoDS_Shape& shape,
     }
 }
 
-bool Translator::importSTEP(QString file,
-                            const Handle(TopTools_HSequenceOfShape)& shapes,
-                            QList<QPair<QString, QColor> >& objData)
-{
-    if (shapes.IsNull()) {
-        qWarning("Shape list was null. Aborting export.");
-        return false;
-    }
 
-    STEPCAFControl_Reader reader;
-    reader.SetColorMode(true);
-    reader.SetNameMode(true);
-    reader.SetMatMode(true);
-
-    qDebug("Reading begin.");
-
-    IFSelect_ReturnStatus status = reader.ReadFile((Standard_CString)file.toUtf8().constData());
-
-    qDebug("OK! Reading complete.");
-
-    switch (status) {
-        case IFSelect_RetVoid:
-            qWarning("Read status was VOID.");
-            return false;
-        case IFSelect_RetError:
-            qWarning("Read status was ERROR.");
-            return false;
-        case IFSelect_RetFail:
-            qWarning("Read status was FAIL.");
-            return false;
-        case IFSelect_RetStop:
-            qWarning("Read status was STOP.");
-            return false;
-        case IFSelect_RetDone:
-            break;
-    }
-
-    Handle(TDocStd_Document) doc = new TDocStd_Document("XmlXCAF");
-    qDebug("Transfer begin.");
-    bool ok = reader.Transfer(doc);
-    qDebug("OK! Transfer complete.");
-    if (!ok) {
-        qWarning("Transfer wasn't ok. Aborting.");
-        return false;
-    }
-
-    TDF_Label mainLabel = doc->Main();
-
-    Handle(XCAFDoc_ShapeTool) shapeTool = XCAFDoc_DocumentTool::ShapeTool(mainLabel);
-    Handle(XCAFDoc_ColorTool) colorTool = XCAFDoc_DocumentTool::ColorTool(mainLabel);
-    Handle(XCAFDoc_MaterialTool) materialTool = XCAFDoc_DocumentTool::MaterialTool(mainLabel);
-
-    TDF_LabelSequence labels;
-    shapeTool->GetFreeShapes(labels);
-    if (labels.IsEmpty()) {
-        qWarning("There are no free shapes");
-        return false;
-    }
-
-    for (int i = 1; i <= labels.Length(); i++) {
-        TopoDS_Shape tds = shapeTool->GetShape(labels.Value(i));
-        bool found = false;
-        for (TopExp_Explorer exp(tds, TopAbs_SOLID); exp.More(); exp.Next()) {
-            TopoDS_Shape solid = exp.Current();
-            shapes->Append(solid);
-            objData.append(handleShapeMetadata(solid, colorTool, shapeTool, materialTool));
-            found = true;
-        }
-        if (!found) {
-            for (TopExp_Explorer exp(tds, TopAbs_SHELL); exp.More(); exp.Next()) {
-                TopoDS_Shape solid = exp.Current();
-                objData.append(handleShapeMetadata(solid, colorTool, shapeTool, materialTool));
-                shapes->Append(solid);
-                found = true;
-            }
-            if (found) {
-                // TODO: create a "WARNING" field/list, that can be checked postop,
-                // and raised by the window.
-                // Should we even allow standalone shells?
-                qCritical("Could not find any dependent solids. Instead, added shells. Output geometry may not be closed.");
-            } else {
-                qWarning("No dependent solids or shells found for shape.");
-            }
-        }
-    }
-
-    return true;
-}
-
-
-bool Translator::exportGDML(QString path,
-                            const Handle(TopTools_HSequenceOfShape)& shapes,
-                            const QVector<SolidMetadata>& metadata)
-{
+// export process
+bool Translator::exportProcess(QString path,
+                               const Handle(TopTools_HSequenceOfShape) &shapes,
+                               const QVector<SolidMetadata> &metadata) {
     if (shapes.IsNull() || shapes->IsEmpty()) {
         qWarning("Shape list was null or empty. Aborting export.");
         return false;
@@ -381,7 +295,7 @@ bool Translator::exportGDML(QString path,
         GdmlWriter writer(path);
         writer.writeIntro();
         for (int i = 1; i <= shapes->Length(); i++) {
-            const SolidMetadata& meta = metadata[i - 1];
+            const SolidMetadata &meta = metadata[i - 1];
             writer.addSolid(shapes->Value(i), meta.name, meta.material);
         }
         writer.writeExtro();
@@ -389,3 +303,102 @@ bool Translator::exportGDML(QString path,
 #endif
     return true;
 }
+
+// import process
+bool Translator::importProcess(QString file,
+                               const Handle(TopTools_HSequenceOfShape) &shapes,
+                               QList<QPair<QString, QColor> > &objData) {
+    // Shapes control
+    if (shapes.IsNull()) {
+        qWarning("Shape list was null. Aborting export.");
+        return false;
+    }
+
+    STEPCAFControl_Reader reader;
+    reader.SetColorMode(true);
+    reader.SetNameMode(true);
+    reader.SetMatMode(true);
+
+    qDebug("Reading begin.");
+
+    IFSelect_ReturnStatus status = reader.ReadFile((Standard_CString) file.toUtf8().constData());
+
+    qDebug("OK! Reading complete.");
+
+    switch (status) {
+        case IFSelect_RetVoid:
+            qWarning("Read status was VOID.");
+            return false;
+        case IFSelect_RetError:
+            qWarning("Read status was ERROR.");
+            return false;
+        case IFSelect_RetFail:
+            qWarning("Read status was FAIL.");
+            return false;
+        case IFSelect_RetStop:
+            qWarning("Read status was STOP.");
+            return false;
+        case IFSelect_RetDone:
+            break;
+    }
+
+    Handle(TDocStd_Document) doc = new TDocStd_Document("XmlXCAF");
+
+    qDebug("Transfer begin.");
+
+    bool ok = reader.Transfer(doc);
+
+    qDebug("OK! Transfer complete.");
+
+    if (!ok) {
+        qWarning("Transfer wasn't ok. Aborting.");
+        return false;
+    }
+
+    TDF_Label mainLabel = doc->Main();
+
+    Handle(XCAFDoc_ShapeTool) shapeTool = XCAFDoc_DocumentTool::ShapeTool(mainLabel);
+    Handle(XCAFDoc_ColorTool) colorTool = XCAFDoc_DocumentTool::ColorTool(mainLabel);
+    Handle(XCAFDoc_MaterialTool) materialTool = XCAFDoc_DocumentTool::MaterialTool(mainLabel);
+
+    TDF_LabelSequence labels;
+    shapeTool->GetFreeShapes(labels);
+
+    if (labels.IsEmpty()) {
+        qWarning("There are no free shapes");
+        return false;
+    }
+
+    for (int i = 1; i <= labels.Length(); i++) {
+        TopoDS_Shape tds = shapeTool->GetShape(labels.Value(i));
+        bool found = false;
+        for (TopExp_Explorer exp(tds, TopAbs_SOLID); exp.More(); exp.Next()) {
+            TopoDS_Shape solid = exp.Current();
+            shapes->Append(solid);
+            objData.append(handleShapeMetadata(solid, colorTool, shapeTool, materialTool));
+            found = true;
+        }
+        if (!found) {
+            for (TopExp_Explorer exp(tds, TopAbs_SHELL); exp.More(); exp.Next()) {
+                TopoDS_Shape solid = exp.Current();
+                objData.append(handleShapeMetadata(solid, colorTool, shapeTool, materialTool));
+                shapes->Append(solid);
+                found = true;
+            }
+            if (found) {
+
+                // TODO: create a "WARNING" field/list, that can be checked postop,
+                // and raised by the window.
+                // Should we even allow standalone shells?
+                qCritical(
+                        "Could not find any dependent solids. Instead, added shells. Output geometry may not be closed.");
+            } else {
+                qWarning("No dependent solids or shells found for shape.");
+            }
+        }
+    }
+
+    return true;
+}
+
+

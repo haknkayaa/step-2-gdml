@@ -39,6 +39,7 @@ public:
     explicit MainWindow(QString openFile);
     virtual void closeEvent(QCloseEvent* event);
 
+
 signals:
     void enableObjectEditor(bool enabled);
 
@@ -58,10 +59,13 @@ private slots:
     void currentObjectUpdated();
 
     void getColor();
+    void convertButtonFunc();
+
 private:
     void loadSettings();
     void createInterface();
     void createMenus();
+
     SolidMetadata& currentMetadata();
 
     Viewer* view;
@@ -76,6 +80,7 @@ private:
     QComboBox* objMaterial;
     QSlider* objTransparency;
     QPushButton* objColor;
+    QPushButton* convertButton;
 
     QVector<SolidMetadata> metadata;
     QMap<QListWidgetItem*, int> itemsToIndices;

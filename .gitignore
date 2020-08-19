@@ -1,2 +1,5 @@
 build
+debug
+release
 .idea
+CMakeLists.txt

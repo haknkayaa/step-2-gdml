@@ -4,7 +4,9 @@
 #include "gdmlwriter.h"
 #include "util.h"
 #include "helpdialog.h"
+#include "toolbar.h"
 
+#include <QToolBar>
 #include <QLabel>
 #include <QMenu>
 #include <QGridLayout>
@@ -13,6 +15,7 @@
 #include <QSignalMapper>
 #include <QStandardItemModel>
 #include <QFileDialog>
+#include <QDebug>
 
 #include <AIS_InteractiveObject.hxx>
 
@@ -23,65 +26,70 @@
 
 #include <cstdio>
 
-QIcon makeIcon(QColor color)
-{
+QIcon makeIcon(QColor color) {
     QPixmap pixmap(QSize(30, 30));
     pixmap.fill(color);
     return QIcon(pixmap);
 }
 
-QIcon makeIcon(Quantity_Color color)
-{
+QIcon makeIcon(Quantity_Color color) {
     return makeIcon(QColor::fromRgbF(color.Red(), color.Green(), color.Blue()));
 }
 
-
-
-GDMLNameValidator::GDMLNameValidator(QObject* parent,
-                                     const QSet<QString>& enames) :
-    QValidator(parent), names(enames)
-{
+GDMLNameValidator::GDMLNameValidator(QObject *parent, const QSet <QString> &enames) : QValidator(parent), names(enames) {
+    // pass
 }
-QValidator::State GDMLNameValidator::validate(QString& text, int&) const
-{
+
+QValidator::State GDMLNameValidator::validate(QString &text, int &) const {
     // no quotes (breaks the naive exporter). Empty names are not liked
     if (text.contains('"')) {
         return Invalid;
     }
 
     if (names.contains(text) || text.isEmpty()) {
-        emit((GDMLNameValidator*)this)->textIntermediate();
+        emit((GDMLNameValidator *) this)->textIntermediate();
         return Intermediate;
     } else {
-        emit((GDMLNameValidator*)this)->textAcceptable();
+        emit((GDMLNameValidator *) this)->textAcceptable();
         return Acceptable;
     }
 }
 
-void GDMLNameValidator::fixup(QString&) const
-{
+void GDMLNameValidator::fixup(QString &) const {
+    // pass
 }
 
-MainWindow::MainWindow(QString openFile) :
-    QMainWindow(), helpdialog(NULL)
-{
+MainWindow::MainWindow(QString openFile) : QMainWindow(), helpdialog(NULL) {
     setWindowTitle("STEP to GDML");
 
     HelpDialog::loadConfig();
 
-    V3d_Viewer* v = Viewer::makeViewer();
-    context = new AIS_InteractiveContext(v);
-    // Lights must be configured after the context is set. Why?
-    v->SetLightOn(new V3d_DirectionalLight(v, V3d_Zneg, Quantity_NOC_WHITE,
-                                           Standard_True));
-    v->SetLightOn(new V3d_AmbientLight(v, Quantity_NOC_WHITE));
+    // creating a viewer
+    V3d_Viewer *v = Viewer::makeViewer();
 
+    // content
+    context = new AIS_InteractiveContext(v);
+    context->SetDisplayMode(AIS_Shaded,Standard_False);
+    // Lights must be configured after the context is set. Why?
+    //v->SetLightOn(new V3d_DirectionalLight(v, V3d_Zpos, Quantity_NOC_WHITE, Standard_True));
+    //v->SetLightOn(new V3d_AmbientLight(v, Quantity_NOC_RED));
+    //v->UpdateLights();
+
+    Handle(V3d_DirectionalLight) light  = new V3d_DirectionalLight(v, V3d_Ypos, Quantity_NOC_GRAY9, Standard_False);
+    v->SetLightOn(light);
+    Handle(V3d_DirectionalLight) light2 = new V3d_DirectionalLight(v, V3d_Zneg, Quantity_NOC_GRAY95, Standard_False);
+    v->SetLightOn(light2);
+    Handle(V3d_DirectionalLight) light3 = new V3d_DirectionalLight(v, V3d_Xneg, Quantity_NOC_BLACK, Standard_False);
+    v->SetLightOn(light3);
+    //v->SetDefaultLights();
+    v->UpdateLights();
 
     view = new Viewer(context, this);
-    connect(view, SIGNAL(selectionMightBeChanged()),
-            SLOT(onViewSelectionChanged()));
+    connect(view, SIGNAL(selectionMightBeChanged()), SLOT(onViewSelectionChanged()));
+
+    // dosya parametresi verilmişse direk converte dönüştür.
     if (!openFile.isEmpty()) {
-        QSignalMapper* sigmap = new QSignalMapper(this);
+        QSignalMapper *sigmap = new QSignalMapper(this);
         sigmap->setMapping(view, openFile);
         connect(view, SIGNAL(readyToUse()), sigmap, SLOT(map()));
         connect(sigmap, SIGNAL(mapped(QString)), this, SLOT(importSTEP(QString)));
@@ -97,26 +105,15 @@ MainWindow::MainWindow(QString openFile) :
     current_object = -1;
 }
 
-void MainWindow::loadSettings()
-{
+void MainWindow::loadSettings() {
     QSettings settings;
 
     this->restoreGeometry(settings.value("this-geom").toByteArray());
     splitter->restoreState(settings.value("splitter-state").toByteArray());
 }
 
-void MainWindow::closeEvent(QCloseEvent* evt)
-{
-    QSettings settings;
-    settings.setValue("this-geom", this->saveGeometry());
-    settings.setValue("splitter-state", splitter->saveState());
-    HelpDialog::saveConfig();
 
-    QMainWindow::closeEvent(evt);
-}
-
-void MainWindow::createInterface()
-{
+void MainWindow::createInterface() {
     namesList = new QListWidget();
     namesList->setAlternatingRowColors(true);
     namesList->setSortingEnabled(true);
@@ -127,31 +124,35 @@ void MainWindow::createInterface()
     connect(namesList, SIGNAL(currentRowChanged(int)),
             SLOT(changeCurrentObject(int)));
 
+    // Name Select Menu
+    objName = new QLineEdit();
+    validator = new GDMLNameValidator(this, names);
+    objName->setValidator(validator);
+    QSignalMapper *sigmap = new QSignalMapper(this);
+    sigmap->setMapping(validator, "QLineEdit{color: red;}");
+    connect(validator, SIGNAL(textIntermediate()), sigmap, SLOT(map()));
+    connect(sigmap, SIGNAL(mapped(QString)), objName, SLOT(setStyleSheet(QString)));
+    connect(validator, SIGNAL(textAcceptable()), SLOT(currentObjectUpdated()));
+    QLabel *objNameLabel = new QLabel("Name");
+
+    // Material Select Menu
     objMaterial = new QComboBox();
     objMaterial->addItems(QStringList() << GdmlWriter::defaultMaterial());
     objMaterial->setEditable(true);
     connect(objMaterial, SIGNAL(currentIndexChanged(int)),
             SLOT(currentObjectUpdated()));
-    QLabel* objMaterialLabel = new QLabel("Material");
+    QLabel *objMaterialLabel = new QLabel("Material");
 
-    objName = new QLineEdit();
-    validator = new GDMLNameValidator(this, names);
-    objName->setValidator(validator);
-    QSignalMapper* sigmap = new QSignalMapper(this);
-    sigmap->setMapping(validator, "QLineEdit{color: red;}");
-    connect(validator, SIGNAL(textIntermediate()), sigmap, SLOT(map()));
-    connect(sigmap, SIGNAL(mapped(QString)), objName, SLOT(setStyleSheet(QString)));
-    connect(validator, SIGNAL(textAcceptable()), SLOT(currentObjectUpdated()));
-    QLabel* objNameLabel = new QLabel("Name");
-
+    // Transparency Select Menu
     objTransparency = new QSlider(Qt::Horizontal);
     objTransparency->setRange(0, 100);
     objTransparency->setPageStep(20);
     objTransparency->setSingleStep(5);
     connect(objTransparency, SIGNAL(sliderMoved(int)),
             SLOT(currentObjectUpdated()));
-    QLabel* objTransparencyLabel = new QLabel("Alpha");
+    QLabel *objTransparencyLabel = new QLabel("Transparency");
 
+    // Color Select Menu
     Quantity_Color qcol;
 #if OCC_VERSION_HEX >= 0x070000
     qcol = context->DefaultDrawer()->Color();
@@ -160,7 +161,7 @@ void MainWindow::createInterface()
 #endif
     objColor = new QPushButton(makeIcon(qcol), "");
     connect(objColor, SIGNAL(clicked()), this, SLOT(getColor()));
-    QLabel* objColorLabel = new QLabel("Color");
+    QLabel *objColorLabel = new QLabel("Color");
 
     connect(this, SIGNAL(enableObjectEditor(bool)), objMaterial,
             SLOT(setEnabled(bool)));
@@ -181,35 +182,36 @@ void MainWindow::createInterface()
 
     emit enableObjectEditor(false);
 
-    QStandardItemModel* smi = new QStandardItemModel(2, 1);
+    QStandardItemModel *smi = new QStandardItemModel(2, 1);
     smi->setItem(0, new QStandardItem("TEXT"));
     smi->setItem(1, new QStandardItem("LOG"));
     smi->sort(0, Qt::AscendingOrder);
     smi->setColumnCount(1);
 
-    // Layouts
+    // Right Top Layouts
+    QGridLayout *rtlayout = new QGridLayout();
 
-    QGridLayout* rtlayout = new QGridLayout();
     rtlayout->setContentsMargins(3, 3, 3, 3);
+
     rtlayout->addWidget(objNameLabel, 0, 0, Qt::AlignRight | Qt::AlignVCenter);
     rtlayout->addWidget(objName, 0, 2);
 
     rtlayout->addWidget(objMaterialLabel, 2, 0, Qt::AlignRight | Qt::AlignVCenter);
     rtlayout->addWidget(objMaterial, 2, 2);
 
-    rtlayout->addWidget(objTransparencyLabel, 4, 0,
-                        Qt::AlignRight | Qt::AlignVCenter);
+    rtlayout->addWidget(objTransparencyLabel, 4, 0, Qt::AlignRight | Qt::AlignVCenter);
     rtlayout->addWidget(objTransparency, 4, 2);
 
     rtlayout->addWidget(objColorLabel, 6, 0, Qt::AlignRight | Qt::AlignVCenter);
     rtlayout->addWidget(objColor, 6, 2);
 
-    rtlayout->setRowMinimumHeight(1, 5);
+    rtlayout->setRowMinimumHeight(1, 15);
     rtlayout->setRowMinimumHeight(3, 5);
     rtlayout->setRowMinimumHeight(5, 5);
     rtlayout->setColumnMinimumWidth(1, 5);
 
-    QVBoxLayout* rlayout = new QVBoxLayout();
+    // Right Bottom Layout
+    QVBoxLayout *rlayout = new QVBoxLayout();
     rlayout->addLayout(rtlayout, 1);
     rlayout->addSpacing(5);
     rlayout->addWidget(new QLabel("Materials go here!"), 0);
@@ -224,7 +226,12 @@ void MainWindow::createInterface()
     splitter->addWidget(view);
     splitter->setStretchFactor(1, 20);
 
-    QWidget* m = new QWidget();
+    // Button: Convert to GDML
+    convertButton = new QPushButton("Convert to GDML and Save", this);
+    connect(convertButton, SIGNAL(released()), this, SLOT(convertButtonFunc()));
+    rlayout->addWidget(convertButton);
+
+    QWidget *m = new QWidget();
     m->setLayout(rlayout);
     splitter->addWidget(m);
     splitter->setStretchFactor(2, 1);
@@ -232,17 +239,16 @@ void MainWindow::createInterface()
     this->setCentralWidget(splitter);
 }
 
-
-void MainWindow::createMenus()
-{
-    QAction* quit = mkAction(this, "Quit", "Ctrl+Q", SLOT(close()));
-    QAction* load = mkAction(this, "Load STEP file...", "Ctrl+O",
+// Top Menu Bar
+void MainWindow::createMenus() {
+    QAction *quit = mkAction(this, "Quit", "Ctrl+Q", SLOT(close()));
+    QAction *load = mkAction(this, "Load STEP file...", "Ctrl+O",
                              SLOT(raiseSTEP()));
-    QAction* expo = mkAction(this, "Export GDML file", "Ctrl+E", SLOT(raiseGDML()));
-    QAction* setView = mkAction(this, "Settings View", "", SLOT(raiseHelp()));
+    QAction *expo = mkAction(this, "Export GDML file", "Ctrl+E", SLOT(raiseGDML()));
+    QAction *setView = mkAction(this, "Settings View", "", SLOT(raiseHelp()));
 
     // File Menu Bar
-    QMenu* fileMenu = new QMenu("File", this);
+    QMenu *fileMenu = new QMenu("File", this);
 
     fileMenu->addAction(load);
     fileMenu->addAction(expo);
@@ -252,15 +258,30 @@ void MainWindow::createMenus()
     this->menuBar()->addMenu(fileMenu);
 
     // Help Menu Bar
-    QMenu* settingsMenu = new QMenu("Settings", this);
+    QMenu *settingsMenu = new QMenu("Settings", this);
 
     settingsMenu->addAction(setView);
 
     this->menuBar()->addMenu(settingsMenu);
 }
 
-QList<QString> ensureUniqueness(const QList<QString>& input)
-{
+void MainWindow::convertButtonFunc() {
+    convertButton->setText("Converting...");
+    qDebug("Pressed is \"Convert to GDML\" button");
+    raiseGDML();
+    convertButton->setText("Convert to GDML and Save");
+}
+
+void MainWindow::closeEvent(QCloseEvent *evt) {
+    QSettings settings;
+    settings.setValue("this-geom", this->saveGeometry());
+    settings.setValue("splitter-state", splitter->saveState());
+    HelpDialog::saveConfig();
+
+    QMainWindow::closeEvent(evt);
+}
+
+QList <QString> ensureUniqueness(const QList <QString> &input) {
     QMap<QString, int> nameIndex;
     QVector<int> nameFreqs;
     for (int i = 0; i < input.length(); i++) {
@@ -276,7 +297,7 @@ QList<QString> ensureUniqueness(const QList<QString>& input)
 
     QVector<int> nameCounter(nameFreqs);
 
-    QList<QString> output;
+    QList <QString> output;
     for (int i = 0; i < input.length(); i++) {
         QString name = input[i];
         int index = nameIndex[name];
@@ -291,11 +312,27 @@ QList<QString> ensureUniqueness(const QList<QString>& input)
     return output;
 }
 
-void MainWindow::importSTEP(QString path)
-{
+// open a step file action
+void MainWindow::raiseSTEP() {
+    QString filters = "All Files (*.*);;Step Files (*.stp *.step)";
 
+    // name = will be path
+    QString name = QFileDialog::getOpenFileName(this, "Import STEP file (.stp, .step)",
+                                                QDir::currentPath(), filters);
+    if (!name.isEmpty()) {
+        // Qstring print
+        qDebug("STEP PATH= %s", name.toUtf8().data());
+        importSTEP(name);
+    }
+}
+
+// load step file action
+void MainWindow::importSTEP(QString path) {
+
+    // get path
     qDebug("Importing file %s", path.toUtf8().data());
 
+    // clear metadata
     context->RemoveAll(true);
     metadata.clear();
     itemsToIndices.clear();
@@ -303,25 +340,42 @@ void MainWindow::importSTEP(QString path)
     namesList->clear();
     names.clear();
 
-    QList<QPair<QString, QColor> > objectData;
-    QList<AIS_InteractiveObject*>  objects = translate->importSTEP(path,
-            objectData);
+    //
+    QList <QPair<QString, QColor>> objectData;
+
+    QList <AIS_InteractiveObject *> objects = translate->importSTEP(path, objectData);
+
+
+    // object validate
     if (objects.isEmpty()) {
         qDebug("Failure");
     } else {
         qDebug("Success");
         importedName = path;
     }
-    QList<QString> objectNames;
-    QList<QColor> objectColors;
+
+    QList <QString> objectNames;
+    QList <QColor> objectColors;
+
+    // get objectData
     for (int i = 0; i < objectData.length(); i++) {
         objectNames.append(objectData[i].first);
         objectColors.append(objectData[i].second);
+        //
+        qDebug("objectData[i] >> ");
+        qDebug() << objectData[i];
+
+
     }
     objectNames = ensureUniqueness(objectNames);
 
 
     for (int i = 0; i < objects.length(); i++) {
+        qDebug("Objects >> ");
+        qDebug() << objects;
+
+
+
         SolidMetadata sm;
 
         sm.name = objectNames[i];
@@ -342,49 +396,39 @@ void MainWindow::importSTEP(QString path)
     }
 
     for (int i = 0; i < metadata.size(); i++) {
-        SolidMetadata& m = metadata[i];
+        SolidMetadata &m = metadata[i];
         context->SetColor(m.object, m.color, false);
         context->SetTransparency(m.object, m.transp, false);
+        context->SetWidth(m.object,1.0 ,false);
     }
 
     view->resetView();
 }
 
-void MainWindow::exportGDML(QString path)
-{
+void MainWindow::exportGDML(QString path) {
     qDebug("Exporting file %s", path.toUtf8().data());
+
     bool success = translate->exportGDML(path, metadata);
     qDebug("Success %c", success ? 'Y' : 'N');
+    convertButton->setText("Convert to GDML and Save");
 }
 
-void MainWindow::raiseSTEP()
-{
-    QString filters = "All Files (*.*);;Step Files (*.stp *.step)";
-    QString name = QFileDialog::getOpenFileName(this, "Import STEP file (.stp, .step)",
-                   QDir::currentPath(), filters);
-    if (!name.isEmpty()) {
-        // Qstring print
-        qDebug("STEP PATH= %s", name.toStdString().c_str());
-        qDebug("STEP PATH= %s", name.toUtf8().data());
-        importSTEP(name);
 
-    }
 
-}
+void MainWindow::raiseGDML() {
 
-void MainWindow::raiseGDML()
-{
-    QString filters = "GDML Files (*.gdml);;All Files (*.*)";
+    QString filters = "All Files (*.*);;GDML Files (*.gdml)";
     QString adv_name = importedName.isEmpty() ? "output.gdml" : importedName.split(QDir::separator()).last();
     QString name = QFileDialog::getSaveFileName(this, "Export GDML file",
-                                 QDir::currentPath() + QDir::separator() + adv_name, filters);
+                                                QDir::currentPath() + QDir::separator() + adv_name, filters);
+
     if (!name.isEmpty()) {
         exportGDML(name);
     }
+
 }
 
-void MainWindow::raiseHelp()
-{
+void MainWindow::raiseHelp() {
     if (!helpdialog) {
         helpdialog = new HelpDialog(this);
     }
@@ -392,13 +436,12 @@ void MainWindow::raiseHelp()
     helpdialog->raise();
 }
 
-void MainWindow::onViewSelectionChanged()
-{
+void MainWindow::onViewSelectionChanged() {
     namesList->blockSignals(true);
 
     namesList->clearSelection();
 
-    QListWidgetItem* current = 0;//namesList->currentItem();
+    QListWidgetItem *current = 0;//namesList->currentItem();
     for (context->InitSelected(); context->MoreSelected();
          context->NextSelected()) {
         int idx = objectsToIndices[&(*context->Current())];
@@ -421,13 +464,14 @@ void MainWindow::onViewSelectionChanged()
         }
     }
 }
-void MainWindow::onListSelectionChanged()
-{
+
+void MainWindow::onListSelectionChanged() {
     context->ClearSelected(false);
 
-    QList<QListWidgetItem*> items = namesList->selectedItems();
+    QList < QListWidgetItem * > items = namesList->selectedItems();
     for (int i = 0; i < items.length(); i++) {
-        Handle(AIS_InteractiveObject) obj = metadata[itemsToIndices[items[i]]].object;
+        Handle(AIS_InteractiveObject)
+        obj = metadata[itemsToIndices[items[i]]].object;
         context->AddOrRemoveSelected(obj, false);
     }
     context->UpdateCurrentViewer();
@@ -437,8 +481,7 @@ void MainWindow::onListSelectionChanged()
     }
 }
 
-void MainWindow::changeCurrentObject(int row)
-{
+void MainWindow::changeCurrentObject(int row) {
     if (row < 0) {
         if (current_object >= 0) {
             emit enableObjectEditor(false);
@@ -447,7 +490,7 @@ void MainWindow::changeCurrentObject(int row)
         return;
     }
 
-    if (current_object < 0)  {
+    if (current_object < 0) {
         emit enableObjectEditor(true);
     }
 
@@ -458,7 +501,7 @@ void MainWindow::changeCurrentObject(int row)
 
     current_object = idx;
 
-    SolidMetadata& meta = currentMetadata();
+    SolidMetadata &meta = currentMetadata();
 
     names.insert(objName->text());
     names.remove(meta.name);
@@ -486,35 +529,32 @@ void MainWindow::changeCurrentObject(int row)
     objMaterial->blockSignals(false);
 }
 
-bool sortPairs(const QPair<int, QString*>& a, const QPair<int, QString*>& b)
-{
+bool sortPairs(const QPair<int, QString *> &a, const QPair<int, QString *> &b) {
     return *a.second < *b.second;
 }
 
-void MainWindow::currentObjectUpdated()
-{
+void MainWindow::currentObjectUpdated() {
     objName->setStyleSheet("");
     QString next = objName->text();
-    SolidMetadata& meta = currentMetadata();
-    QListWidgetItem* item = meta.item;
+    SolidMetadata &meta = currentMetadata();
+    QListWidgetItem *item = meta.item;
     meta.name = next;
     item->setText(next);
 
     meta.material = objMaterial->currentText();
 
-    double transp = 1.0 - ((double)objTransparency->value() /
-                           (double)objTransparency->maximum());
+    double transp = 1.0 - ((double) objTransparency->value() /
+                           (double) objTransparency->maximum());
     if (transp != meta.transp) {
         meta.transp = transp;
         context->SetTransparency(meta.object, meta.transp, true);
     }
 }
 
-void MainWindow::getColor()
-{
-    SolidMetadata& meta = currentMetadata();
+void MainWindow::getColor() {
+    SolidMetadata &meta = currentMetadata();
 
-    Quantity_Color& col = meta.color;
+    Quantity_Color &col = meta.color;
     QColor initial = QColor::fromRgbF(col.Red(), col.Green(), col.Blue());
 
     QColor next = QColorDialog::getColor(initial, this, "Select Color");
@@ -528,10 +568,8 @@ void MainWindow::getColor()
     context->SetColor(meta.object, nco, true);
 }
 
-SolidMetadata& MainWindow::currentMetadata()
-{
+SolidMetadata &MainWindow::currentMetadata() {
     int row = namesList->currentRow();
     int idx = itemsToIndices[namesList->item(row)];
     return metadata[idx];
 }
-
